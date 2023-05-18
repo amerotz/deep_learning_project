@@ -1,7 +1,8 @@
 import pickle as pkl
 
+
 def main():
-    with open('dataset.pkl', 'rb') as f:
+    with open("dataset.pkl", "rb") as f:
         data = pkl.load(f)
 
     tonic = {}
@@ -14,9 +15,9 @@ def main():
     for name in data:
         tot += 1
         d = data[name]
-        t = d['tonic']
-        m = d['mode']
-        s = d['style']
+        t = d["tonic"]
+        m = d["mode"]
+        s = d["style"]
         if t in tonic:
             tonic[t] += 1
         else:
@@ -30,13 +31,13 @@ def main():
         else:
             style[s] = 1
 
-        for l in d['root']:
+        for l in d["root"]:
             root.update(l)
 
-        for note in d['nmat']:
-            dur = str(note[1]-note[0])
+        for note in d["nmat"]:
+            dur = str(note[1] - note[0])
 
-            if dur in ['15', '16', '13', '14', '11', '9', '10', '12', '26']:
+            if dur in ["15", "16", "13", "14", "11", "9", "10", "12", "26"]:
                 scrap.add(name)
             if dur in durations:
                 durations[dur] += 1
@@ -48,10 +49,11 @@ def main():
     print(style)
     print(root)
     durations = list(durations.items())
-    durations.sort(key=lambda x : x[1], reverse=True)
+    durations.sort(key=lambda x: x[1], reverse=True)
     print(durations)
     print(tot)
-    print(len(scrap)/tot)
+    print(len(scrap) / tot)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
