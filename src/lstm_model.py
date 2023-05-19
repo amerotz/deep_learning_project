@@ -31,10 +31,29 @@ class LSTMModel(nn.Module):
             batch_first=True,
         )
 
-        multiplier = 2 if bidirectional else 1
-        self.prediction_layer = nn.Linear(multiplier * hidden_size, vocab_size)
+        self.multiplier = 2 if bidirectional else 1
+        self.prediction_layer = nn.Linear(self.multiplier * hidden_size, vocab_size)
 
-    # batch (B, L, V)
+    # batch (B, L) -> (B * L, V)
     def forward(self, batch):
+        B = batch.size(0)
+        L = batch.size(1)
+        H = self.hidden_size
+        V = self.vocab_size
+
+        # (B, L) -> (B, L, E)
         embedding = self.embedding(batch)
-        pass
+
+        # (B, L, E) -> (B, L, H)
+        lstm_out, _ = self.lstm_layer(embedding)
+
+        # (B, L, H) -> (B * L, H)
+        pred_input = lstm_out.reshape(B * L, self.multiplier * H)
+
+        # (B * L, H) -> (B * L, V)
+        logits = self.prediction_layer(pred_input)
+
+        # (B * L, V) -> (B, L, V)
+        # logits = logits.reshape(B, L, V)
+
+        return logits
