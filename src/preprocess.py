@@ -4,6 +4,7 @@ import numpy as np
 import pathlib
 import os
 import pickle as pkl
+from tqdm import tqdm
 
 
 def transpose_nmat(track_data: dict) -> dict:
@@ -86,7 +87,7 @@ def nmat2midi(track_data: dict, scale=8) -> (mp.Music, bool):
 def convert_data(data: dict, midi_path: str, abc_path: str, save=True) -> None:
     pieces = list(data.keys())
 
-    for i, track_name in enumerate(pieces):
+    for i, track_name in tqdm(enumerate(pieces)):
         # get data
         track_data = data[track_name]
         # make mp.Music object
@@ -99,7 +100,7 @@ def convert_data(data: dict, midi_path: str, abc_path: str, save=True) -> None:
 
         # make the midi an abc
         abc_name = f"{abc_path}/{track_name}.abc"
-        os.system(f"midi2abc {midi_name} -o {abc_name}")
+        os.system(f"midi2abc {midi_name} -k 0 -o {abc_name}")
 
         # clean the abc for our purposes
         file_data = ""
@@ -111,7 +112,7 @@ def convert_data(data: dict, midi_path: str, abc_path: str, save=True) -> None:
             file_data = clean_abc(file_data)
 
         with open(f"{abc_name}", "w") as f:
-            f.write(file_data)
+            f.write(file_data.replace("\n", " "))
 
 
 def clean_abc(abc):
