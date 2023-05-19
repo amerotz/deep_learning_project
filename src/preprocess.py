@@ -11,7 +11,7 @@ def transpose_nmat(track_data: dict) -> dict:
     Transpose the nmat to 0-tonic, by subtracting the tonic from the third (pitch) column
     TODO I do believe this method mutates the track_data, inplace, so the return statment is not needed
     """
-    # untransposed_nmat = np.array(track_data["nmat"]).copy()
+    untransposed_nmat = np.array(track_data["nmat"]).copy()
     nmat = np.array(track_data["nmat"])
     tonic = track_data["tonic"]
 
@@ -22,17 +22,17 @@ def transpose_nmat(track_data: dict) -> dict:
     assert np.all(nmat >= 0)
 
     """
+    """
     # assert that old_nmat and nmat are not the same
     # (since the dataset only has tonics 2, 8, 11, this should always be true)
     assert not np.all(untransposed_nmat == nmat)
-    """
 
     track_data["nmat"] = nmat
 
     return track_data
 
 
-def nmat2midi(track_data: dict, scale=8, transpose=2) -> mp.Music:
+def nmat2midi(track_data: dict, scale=8) -> (mp.Music, bool):
     """
     Convert all pieces to midi and then to abc.
     """
@@ -40,23 +40,40 @@ def nmat2midi(track_data: dict, scale=8, transpose=2) -> mp.Music:
     track = mp.Track()  # Create new Track object for each piece
 
     # this should transpose the nmat to the correct key
-    track_data = transpose_nmat(track_data)
+    # track_data = transpose_nmat(track_data)
 
     # append midi-meta message of which key the piece is in
     # major tonics are [0,11], minor tonics are [12,23]
     # TODO this is not working!
     # key = 0 if track_data["mode"] == 'M' else 12
     # music.meta.append(mp.KeySignature(key=key))
-    music.append(
-        mp.KeySignature(time=0, root=0, fifths=5 if track_data["mode"] == "M" else -3)
-    )
+    # music.append(mp.KeySignature(0, root=8))
+    # is_major = track_data["mode"] == "M"
 
-    music.append(mp.TimeSignature(time=0, numerator=4, denominator=4))
+    music.append(mp.TimeSignature(0, numerator=4, denominator=4))
+    music.append(mp.Tempo(0, 120))
+    scale = music.resolution // 2
+
+    nmat = np.array(track_data["nmat"])
+
+    # transpose to closest
+    tonic = track_data["tonic"]
+    if 12 - tonic < tonic:
+        shift = 12 - tonic
+    else:
+        shift = -tonic
+    nmat[:, 2] += shift
+
+    # octave shift to have mean close to 60
+    octave = round((60 - nmat[:, 2].mean()) / 12)
+    nmat[:, 2] += octave * 12
+
+    track_data["nmat"] = nmat
 
     for note in track_data["nmat"]:
         note = mp.Note(
             time=scale * note[0],
-            pitch=note[2] + transpose * 12,
+            pitch=note[2],
             duration=int(scale * (max(note[1] - note[0], 0.5))),
         )
         track.notes.append(note)
@@ -157,7 +174,8 @@ def clean_abc(abc):
 with open("data/dataset.pkl", "rb") as f:
     data = pkl.load(f)
 
-samples = dict(list(data.items())[:10])
+limit = None
+samples = dict(list(data.items())[:limit])
 
 # noice
 cwd = pathlib.Path.cwd()
