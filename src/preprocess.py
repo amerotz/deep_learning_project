@@ -84,6 +84,18 @@ def convert_data(data: dict, midi_path: str, abc_path: str, save=True) -> None:
         abc_name = f"{abc_path}/{track_name}.abc"
         os.system(f"midi2abc {midi_name} -o {abc_name}")
 
+        # clean the abc for our purposes
+        file_data = ""
+
+        with open(f"{abc_name}", "r") as f:
+            file_data = f.read()
+            file_data = file_data.replace("%", "\n%")
+            file_data = file_data.replace("\n\n", "\n")
+            file_data = clean_abc(file_data)
+
+        with open(f"{abc_name}", "w") as f:
+            f.write(file_data)
+
 
 def clean_abc(abc):
     # Regular expression pattern
@@ -131,8 +143,8 @@ def clean_abc(abc):
     # remove everything between !
     abc = re.sub(r"![^!]+!", "", abc)
 
-    # remove all lines that start with X:,T:,S:
-    abc = re.sub(r"(?m)^[XTSPYNQR]:?.*\n?", "", abc)
+    # remove all lines that start with X:,T:,S:,V:,L:
+    abc = re.sub(r"(?m)^[XTSPYNQRVL]:?.*\n?", "", abc)
     # print(abc)
 
     abc = re.sub(REGEX, lambda y: y.group() + " ", abc)
@@ -159,11 +171,5 @@ os.makedirs(midi_dir, exist_ok=True)
 os.system(f"rm {midi_dir}/*.mid")
 os.system(f"rm {abc_dir}/*.abc")
 
-# convert the samples to midi and then to abc
+# convert the samples to midi and then to abc and then clean it
 convert_data(samples, midi_dir, abc_dir)
-
-with open(f"{abc_dir}/piece_0.abc", "r") as f:
-    data = f.read()
-    data = data.replace("%", "\n%")
-    data = data.replace("\n\n", "\n")
-    clean_abc(data)
