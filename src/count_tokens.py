@@ -4,31 +4,87 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-items = []
 
-total_tokens = defaultdict(int)
+def count_all(ignore=[]):
+    total_tokens = defaultdict(int)
+    items = []
 
-for path_to_file in tqdm(os.listdir("abc")):
-    file_tokens = defaultdict(int)
+    for path_to_file in tqdm(os.listdir("abc")):
+        file_tokens = defaultdict(int)
+        skip = False
 
-    # open the file
-    with open(f"abc/{path_to_file}", "r") as file:
-        tokens = file.read().split(" ")
+        # open the file
+        with open(f"abc/{path_to_file}", "r") as file:
+            tokens = file.read().split(" ")
 
-        # split file_tokens by space and remove empty strings
-        tokens = list(filter(None, tokens))
+            for tok in ignore:
+                if tok in tokens:
+                    skip = True
+                    break
 
-        # count the number of each token
-        for token in tokens:
-            file_tokens[token] += 1
-            total_tokens[token] += 1
+            if skip:
+                continue
 
-    # finally, append a tuple with the filename and the file_tokens
-    items.append((path_to_file, file_tokens))
+            # split file_tokens by space and remove empty strings
+            tokens = list(filter(None, tokens))
 
+            # count the number of each token
+            for token in tokens:
+                file_tokens[token] += 1
+                total_tokens[token] += 1
+
+        # finally, append a tuple with the filename and the file_tokens
+        items.append((path_to_file, file_tokens))
+
+    return total_tokens, items
+
+
+total_tokens, items = count_all()
+"""
 for tok in sorted(total_tokens.items(), key=lambda x: x[1], reverse=True):
     print(tok)
-print(len(total_tokens))
+"""
+
+print("total tokens: ", len(total_tokens))
+
+ignore = [
+    "^F,,",
+    "e'",
+    "^A,,",
+    "=A",
+    "=A,",
+    "^G,,",
+    "^C,",
+    "^g",
+    "=D",
+    "=d",
+    "^a",
+    "g'",
+    "B,,,,",
+    "f'",
+    "^d'",
+    "c''",
+    "a'",
+    "^c'",
+    "^D,,",
+    "=A,,",
+    "=G,",
+    "=C",
+    "=F",
+    "g''",
+    "b'",
+    "=D,",
+    "=a",
+    "e''",
+    "=F,",
+    "^f'",
+    "=G",
+]
+
+filtered_tokens, filtered_items = count_all(ignore=ignore)
+print("total tokens: ", len(filtered_tokens))
+
+print(f"{100*len(filtered_items)/len(items)}% of files kept")
 
 """
 # find the total number of unique tokens

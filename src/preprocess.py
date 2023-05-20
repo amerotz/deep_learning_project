@@ -130,8 +130,8 @@ def clean_abc(abc):
         "K:[ABCDEFG](maj|min|m|dor)?",  # key
         ":?\|:?",  # vertical bar or repetition
         "\([\d]|",  # triplets like this (3
-        "[\^\_\=]?[ABCDEFG][,]?",  # low octave notes
-        "[\^\_\=]?[abcdefg][']?",  # high octave notes
+        "[\^\_\=]?[ABCDEFG][,]*",  # low octave notes
+        "[\^\_\=]?[abcdefg][']*",  # high octave notes
         "z",  # pause
         "(>|<)",  # broken rhythm
         "\[|\]",  # square brackets
