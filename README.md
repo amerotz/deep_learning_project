@@ -46,7 +46,7 @@ To generate from a checkpoint use:
 ```
 python3 src/train.py -i -ld {CKPT} -m {'greedy', 'topk', 'topp'} -t {TEMPERATURE}
 ```
-The model can be sampled with greedy, Top-P and Top-K sampling. Generation starts from an empty sequence starting with '<sos>' and continues until either the maximum sequence length is reached or a '<eos>' token is generated.
+The model can be sampled with greedy, Top-P and Top-K sampling. Generation starts from an empty sequence starting with `<sos>` and continues until either the maximum sequence length is reached or a `<eos>` token is generated.
 
 Output is printed to the console. To listen to the output:
 - create an ABC-file with the following fields:
@@ -57,7 +57,7 @@ L:1/8
 Q:120
 K:C
 ```
-- copy all tokens between '<sos>' and '<eos>' and paste them after `K:C`;
+- copy all tokens between `<sos>` and `<eos>` and paste them after `K:C`;
 - invoke `abc2midi <abc_file> -o <midi_file>`;
 - listen in your program of choice or with `timidity <midi_file>`
 
