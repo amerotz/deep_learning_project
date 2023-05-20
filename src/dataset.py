@@ -160,7 +160,7 @@ class MusicDataset(torch.utils.data.Dataset):
 
 
 """
-#dataset = MusicDataset("data/dataset.txt", 128)
+dataset = MusicDataset("data/dataset.txt", 128)
 dataset = MusicDataset(
     data_file="data/dataset.json",
     vocab_file="data/vocab.json",

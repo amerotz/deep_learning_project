@@ -59,9 +59,9 @@ class LSTMModel(nn.Module):
 
         return logits
 
-    def inference(self, sos_idx, eos_idx, max_len=100, mode="greedy", device="cpu"):
-        assert mode in ["greedy", "topp", "topk"]
-
+    def inference(
+        self, sos_idx, eos_idx, max_len=512, mode="greedy", device="cpu", temperature=1
+    ):
         with torch.no_grad():
             generation = [sos_idx]
             t = 0
@@ -70,10 +70,8 @@ class LSTMModel(nn.Module):
 
                 out = self.forward(input)
 
-                out = self.softmax(out)
-
-                tok = torch.argmax(out)
-                generation.append(tok.item())
+                tok = self.sample(out, mode=mode)
+                generation.append(tok)
 
                 if tok == eos_idx:
                     break
@@ -81,3 +79,34 @@ class LSTMModel(nn.Module):
                 t += 1
 
             return generation
+
+    def sample(self, out, mode="greedy", K=5, T=1, P=0.9):
+        if mode == "greedy":
+            sample = torch.argmax(out)
+
+        elif mode == "topk":
+            values, indexes = torch.topk(out, K, dim=-1)
+            out = out.clone().squeeze(1)
+            out[out < values[:, -1]] = -float("Inf")
+            probs = self.softmax(out / T).squeeze()
+            sample = torch.multinomial(probs, 1)
+
+        elif mode == "topp":
+            values, indexes = torch.sort(out / T, descending=True)
+            values = self.softmax(values)
+            cum_probs = torch.cumsum(values, dim=-1)
+
+            remove = cum_probs > P
+            remove[..., 1:] = remove[..., :-1].clone()
+            remove[..., 0] = 0
+
+            out = out.clone()
+            remove = torch.zeros_like(out, dtype=torch.bool).scatter_(
+                dim=-1, index=indexes, src=remove
+            )
+            out[remove] = -float("Inf")
+
+            probs = self.softmax(out / T).squeeze()
+            sample = torch.multinomial(probs, 1)
+
+        return sample.item()
