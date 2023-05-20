@@ -17,11 +17,13 @@ def count_all(ignore=[]):
         with open(f"abc/{path_to_file}", "r") as file:
             tokens = file.read().split(" ")
 
+            # check for tokens to ignore
             for tok in ignore:
                 if tok in tokens:
                     skip = True
                     break
 
+            # skip the file
             if skip:
                 continue
 

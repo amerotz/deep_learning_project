@@ -161,8 +161,8 @@ def clean_abc(abc):
     # remove everything between !
     abc = re.sub(r"![^!]+!", "", abc)
 
-    # remove all lines that start with X:,T:,S:,V:,L:
-    abc = re.sub(r"(?m)^[XTSPYNQRVL]:?.*\n?", "", abc)
+    # remove all lines that start with X:,T:,S:,V:,L:,M: and K:
+    abc = re.sub(r"(?m)^[XTSPYNQRVLMK]:?.*\n?", "", abc)
     # print(abc)
 
     abc = re.sub(REGEX, lambda y: y.group() + " ", abc)
