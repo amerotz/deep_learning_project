@@ -57,7 +57,7 @@ L:1/8
 Q:120
 K:C
 ```
-- copy all tokens between '<sos>' and '<eos>' and paste them after `K:C`;
+- copy all tokens between `<sos>` and `<eos>` and paste them after `K:C`;
 - invoke `abc2midi <abc_file> -o <midi_file>`;
 - listen in your program of choice or with `timidity <midi_file>`
 
