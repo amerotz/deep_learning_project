@@ -46,7 +46,7 @@ To generate from a checkpoint use:
 ```
 python3 src/train.py -i -ld {CKPT} -m {'greedy', 'topk', 'topp'} -t {TEMPERATURE}
 ```
-The model can be sampled with greedy, Top-P and Top-K sampling. Generation starts from an empty sequence starting with '<sos>' and continues until either the maximum sequence length is reached or a '<eos>' token is generated.
+The model can be sampled with greedy, Top-P and Top-K sampling. Generation starts from an empty sequence starting with `<sos>` and continues until either the maximum sequence length is reached or a `<eos>` token is generated.
 
 Output is printed to the console. To listen to the output:
 - create an ABC-file with the following fields:
