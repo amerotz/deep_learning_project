@@ -72,6 +72,7 @@ def main(args):
 
     # early stopping
     patience = args.patience
+    old_validation_loss = float("Inf")
 
     # just training
     if not args.inference:
@@ -115,17 +116,23 @@ def main(args):
                 validation_loss = round(float(validation_loss), 6)
                 print(f"VAL\tEPOCH:{e}/{args.epochs}\tLOSS:{validation_loss}")
 
-                if validation_loss > mean_epoch_loss:
+                if validation_loss > old_validation_loss:
                     patience -= 1
                 else:
                     patience = args.patience
 
-            checkpoint_path = f"ckpts/E{e}.pytorch"
-            torch.save(model.state_dict(), checkpoint_path)
-            print("Model saved at %s" % checkpoint_path)
+                old_validation_loss = validation_loss
+
+            if e % 5 == 0:
+                checkpoint_path = f"ckpts/E{e}.pytorch"
+                torch.save(model.state_dict(), checkpoint_path)
+                print("Model saved at %s" % checkpoint_path)
 
             if patience == 0:
                 print("Patience reached. Early stopping.")
+                checkpoint_path = f"ckpts/E{e}.pytorch"
+                torch.save(model.state_dict(), checkpoint_path)
+                print("Model saved at %s" % checkpoint_path)
                 break
 
     # inference at end of training or because args.inference
