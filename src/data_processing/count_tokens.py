@@ -8,6 +8,7 @@ from tqdm import tqdm
 def count_all(ignore=[]):
     total_tokens = defaultdict(int)
     items = []
+    lengths = []
 
     for path_to_file in tqdm(os.listdir("abc")):
         file_tokens = defaultdict(int)
@@ -35,13 +36,15 @@ def count_all(ignore=[]):
                 file_tokens[token] += 1
                 total_tokens[token] += 1
 
+            lengths.append(len(tokens))
+
         # finally, append a tuple with the filename and the file_tokens
         items.append((path_to_file, file_tokens))
 
-    return total_tokens, items
+    return total_tokens, items, lengths
 
 
-total_tokens, items = count_all()
+total_tokens, items, _ = count_all()
 """
 for tok in sorted(total_tokens.items(), key=lambda x: x[1], reverse=True):
     print(tok)
@@ -83,10 +86,12 @@ ignore = [
     "=G",
 ]
 
-filtered_tokens, filtered_items = count_all(ignore=ignore)
+filtered_tokens, filtered_items, lens = count_all(ignore=ignore)
 print("total tokens: ", len(filtered_tokens))
 
 print(f"{100*len(filtered_items)/len(items)}% of files kept")
+print(f"max length of piece: {max(lens)}")
+print(len(list(filter(lambda x: x < 400, lens))) / len(items))
 
 """
 # find the total number of unique tokens

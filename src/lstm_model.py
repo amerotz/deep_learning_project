@@ -33,6 +33,7 @@ class LSTMModel(nn.Module):
 
         self.multiplier = 2 if bidirectional else 1
         self.prediction_layer = nn.Linear(self.multiplier * hidden_size, vocab_size)
+        self.softmax = nn.Softmax(dim=-1)
 
     # batch (B, L) -> (B * L, V)
     def forward(self, batch):
@@ -57,3 +58,26 @@ class LSTMModel(nn.Module):
         # logits = logits.reshape(B, L, V)
 
         return logits
+
+    def inference(self, sos_idx, eos_idx, max_len=100, mode="greedy", device="cpu"):
+        assert mode in ["greedy", "topp", "topk"]
+
+        with torch.no_grad():
+            generation = [sos_idx]
+            t = 0
+            while t < max_len:
+                input = torch.LongTensor([generation[-1]]).to(device).unsqueeze(0)
+
+                out = self.forward(input)
+
+                out = self.softmax(out)
+
+                tok = torch.argmax(out)
+                generation.append(tok.item())
+
+                if tok == eos_idx:
+                    break
+
+                t += 1
+
+            return generation

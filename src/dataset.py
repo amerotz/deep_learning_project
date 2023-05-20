@@ -96,8 +96,8 @@ class MusicDataset(torch.utils.data.Dataset):
                 target.extend(["<pad>"] * (self.max_sequence_length - length))
 
                 # convert to indexes
-                input = [self.w2i.get(w, self.w2i["<unk>"]) for w in input]
-                target = [self.w2i.get(w, self.w2i["<unk>"]) for w in target]
+                input = [self.w2i.get(w) for w in input]
+                target = [self.w2i.get(w) for w in target]
 
                 # add dict to data
                 item = {
@@ -133,6 +133,10 @@ class MusicDataset(torch.utils.data.Dataset):
     def pad_idx(self):
         return self.w2i["<pad>"]
 
+    @property
+    def vocab_size(self):
+        return len(self.w2i)
+
     def _load_data(self, data_file: str, vocab_file: str):
         """
         Load data and vocab from json files.
@@ -149,7 +153,10 @@ class MusicDataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return self.data[idx]
+        return (
+            torch.LongTensor(self.data[idx]["input"]),
+            torch.LongTensor(self.data[idx]["target"]),
+        )
 
 
 """
