@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.utils.data as tud
 import argparse
+import os
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from lstm_model import *
@@ -15,7 +17,7 @@ def main(args):
     if args.create_data:
         dataset = MusicDataset(
             data_file="data/dataset.txt",
-            max_sequence_length=512,
+            max_sequence_length=args.max_sequence_length,
             create_data=True,
         )
 
@@ -23,7 +25,7 @@ def main(args):
         dataset = MusicDataset(
             data_file="data/dataset.json",
             vocab_file="data/vocab.json",
-            max_sequence_length=512,
+            max_sequence_length=args.max_sequence_length,
             create_data=False,
         )
 
@@ -76,6 +78,11 @@ def main(args):
 
     # just training
     if not args.inference:
+        epoch_training_loss = []
+        epoch_validation_loss = []
+
+        os.makedirs(args.ckpt_dir, exist_ok=True)
+
         print("Training started.")
         for e in range(args.epochs):
             mean_epoch_loss = 0
@@ -100,7 +107,10 @@ def main(args):
                 batch_num += 1
 
             mean_epoch_loss /= batch_num
-            mean_epoch_loss = round(float(mean_epoch_loss), 6)
+            mean_epoch_loss = float(mean_epoch_loss)
+            # log
+            epoch_training_loss.append(mean_epoch_loss)
+            mean_epoch_loss = round(mean_epoch_loss, 6)
             print(f"TRAIN\tEPOCH:{e}/{args.epochs}\tLOSS:{mean_epoch_loss}")
 
             # validation
@@ -113,7 +123,10 @@ def main(args):
                 validation_loss = loss_fn(
                     input=val_logits, target=y_val.flatten().to(device)
                 )
-                validation_loss = round(float(validation_loss), 6)
+                validation_loss = float(validation_loss)
+                # log
+                epoch_validation_loss.append(validation_loss)
+                validation_loss = round(validation_loss, 6)
                 print(f"VAL\tEPOCH:{e}/{args.epochs}\tLOSS:{validation_loss}")
 
                 if validation_loss > old_validation_loss:
@@ -123,17 +136,27 @@ def main(args):
 
                 old_validation_loss = validation_loss
 
+            checkpoint_path = f"{args.ckpt_dir}/E{e}.pytorch"
             if e % 5 == 0:
-                checkpoint_path = f"ckpts/E{e}.pytorch"
                 torch.save(model.state_dict(), checkpoint_path)
                 print("Model saved at %s" % checkpoint_path)
 
             if patience == 0:
                 print("Patience reached. Early stopping.")
-                checkpoint_path = f"ckpts/E{e}.pytorch"
                 torch.save(model.state_dict(), checkpoint_path)
                 print("Model saved at %s" % checkpoint_path)
                 break
+
+    model_name = f"l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
+    plt.plot(epoch_training_loss, label="training loss")
+    plt.plot(epoch_validation_loss, label="validation loss")
+    plt.yscale("log")
+    plt.legend()
+    plt.xticks(range(0, args.epochs, max(1, args.epochs // 20)))
+    plt.grid()
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.savefig(f"{args.ckpt_dir}/{model_name}.png")
 
     # inference at end of training or because args.inference
     print("Inferenced sample")
@@ -158,13 +181,15 @@ if __name__ == "__main__":
     parser.add_argument("-bi", "--bidirectional", action="store_true", default=False)
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.01)
     parser.add_argument("-bs", "--batch_size", type=float, default=100)
-    parser.add_argument("-tr", "--train_ratio", type=float, default=0.8)
+    parser.add_argument("-tr", "--train_ratio", type=float, default=0.9)
     parser.add_argument("-cd", "--create_data", action="store_true")
     parser.add_argument("-p", "--patience", type=int, default=5)
     parser.add_argument("-ld", "--load", type=str, default=None)
     parser.add_argument("-i", "--inference", action="store_true")
     parser.add_argument("-m", "--mode", type=str, default="greedy")
     parser.add_argument("-t", "--temperature", type=float, default=1)
+    parser.add_argument("-ml", "--max_sequence_length", type=int, default=512)
+    parser.add_argument("-ckd", "--ckpt_dir", type=str, default="./ckpts")
     args = parser.parse_args()
 
     if args.inference:
