@@ -104,14 +104,14 @@ def main(args):
 
             model.train()
             for input, target in iter(train_loader):
+                # get the labels
+                target = target.to(device)
+
                 # model prediction
                 logits = model(input.to(device))
 
-                # get the labels
-                target = target.flatten().to(device)
-
                 # compute loss
-                loss = loss_fn(input=logits, target=target)
+                loss = loss_fn(input=logits, target=target.flatten())
                 mean_epoch_loss += loss
 
                 # propagate and optimize
@@ -133,12 +133,11 @@ def main(args):
             with torch.no_grad():
                 # get val data
                 x_val, y_val = list(iter(val_loader))[0]
+                y_val = y_val.to(device)
                 # forward
                 val_logits = model(x_val.to(device))
                 # loss
-                validation_loss = loss_fn(
-                    input=val_logits, target=y_val.flatten().to(device)
-                )
+                validation_loss = loss_fn(input=val_logits, target=y_val.flatten())
                 validation_loss = float(validation_loss)
                 # log
                 epoch_validation_loss.append(validation_loss)
@@ -196,7 +195,7 @@ if __name__ == "__main__":
     parser.add_argument("-es", "--embedding_size", type=int, default=16)
     parser.add_argument("-l", "--layers", type=int, default=2)
     parser.add_argument("-dp", "--dropout", type=float, default=0.2)
-    parser.add_argument("-ah", "--attention_heads", type=int, default=4)
+    parser.add_argument("-ah", "--attention_heads", type=int, default=2)
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.01)
     parser.add_argument("-bs", "--batch_size", type=float, default=100)
     parser.add_argument("-tr", "--train_ratio", type=float, default=0.9)
