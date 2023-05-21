@@ -21,7 +21,7 @@ class TransfModel(nn.Module):
         self.attention_heads = attention_heads
 
         self.embedding = nn.Embedding(vocab_size, embedding_size)
-        self.encoder_layer = nn.TransformerEncoderLayer(
+        self.decoder_layer = nn.TransformerDecoderLayer(
             d_model=embedding_size,
             nhead=attention_heads,
             dim_feedforward=hidden_size,
@@ -29,8 +29,8 @@ class TransfModel(nn.Module):
             activation="relu",
             batch_first=True,
         )
-        self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layer=self.encoder_layer,
+        self.transformer_decoder = nn.TransformerDecoder(
+            decoder_layer=self.decoder_layer,
             num_layers=num_layers,
         )
 
@@ -48,7 +48,7 @@ class TransfModel(nn.Module):
         embedding = self.embedding(batch)
 
         # (B, L, E) -> (B, L, H)
-        transf_out = self.transformer_encoder(embedding)
+        transf_out = self.transformer_decoder(embedding)
 
         # (B, L, H) -> (B * L, H)
         pred_input = transf_out.reshape(B * L, H)
