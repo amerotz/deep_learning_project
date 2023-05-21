@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from lstm_model import *
+from transf_model import *
 from dataset import *
 
 
@@ -45,15 +46,26 @@ def main(args):
         val_loader = tud.DataLoader(val_data, batch_size=len(val_data), shuffle=True)
 
     print("Creating model...")
+
     # model, optimizer, loss
-    model = LSTMModel(
-        vocab_size=vocab_size,
-        hidden_size=args.hidden_size,
-        embedding_size=args.embedding_size,
-        num_layers=args.layers,
-        dropout=args.dropout,
-        bidirectional=args.bidirectional,
-    )
+    if args.architecture == "lstm":
+        model = LSTMModel(
+            vocab_size=vocab_size,
+            hidden_size=args.hidden_size,
+            embedding_size=args.embedding_size,
+            num_layers=args.layers,
+            dropout=args.dropout,
+            bidirectional=False,
+        )
+    elif args.architecture == "transf":
+        model = TransfModel(
+            vocab_size=vocab_size,
+            hidden_size=args.hidden_size,
+            embedding_size=args.embedding_size,
+            num_layers=args.layers,
+            dropout=args.dropout,
+            attention_heads=args.attention_heads,
+        )
     print(model)
 
     # load previous checkpoint
@@ -88,6 +100,7 @@ def main(args):
             mean_epoch_loss = 0
             batch_num = 0
 
+            model.train()
             for input, target in iter(train_loader):
                 # model prediction
                 logits = model(input.to(device))
@@ -114,6 +127,7 @@ def main(args):
             print(f"TRAIN\tEPOCH:{e}/{args.epochs}\tLOSS:{mean_epoch_loss}")
 
             # validation
+            model.eval()
             with torch.no_grad():
                 # get val data
                 x_val, y_val = list(iter(val_loader))[0]
@@ -147,7 +161,7 @@ def main(args):
                 print("Model saved at %s" % checkpoint_path)
                 break
 
-    model_name = f"l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
+    model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
     plt.plot(epoch_training_loss, label="training loss")
     plt.plot(epoch_validation_loss, label="validation loss")
     plt.yscale("log")
@@ -159,6 +173,7 @@ def main(args):
     plt.savefig(f"{args.ckpt_dir}/{model_name}.png")
 
     # inference at end of training or because args.inference
+    model.eval()
     print("Inferenced sample")
     gen = model.inference(
         dataset.sos_idx,
@@ -178,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument("-es", "--embedding_size", type=int, default=16)
     parser.add_argument("-l", "--layers", type=int, default=2)
     parser.add_argument("-dp", "--dropout", type=float, default=0.2)
-    parser.add_argument("-bi", "--bidirectional", action="store_true", default=False)
+    parser.add_argument("-ah", "--attention_heads", type=int, default=8)
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.01)
     parser.add_argument("-bs", "--batch_size", type=float, default=100)
     parser.add_argument("-tr", "--train_ratio", type=float, default=0.9)
@@ -190,7 +205,10 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--temperature", type=float, default=1)
     parser.add_argument("-ml", "--max_sequence_length", type=int, default=512)
     parser.add_argument("-ckd", "--ckpt_dir", type=str, default="./ckpts")
+    parser.add_argument("-arch", "--architecture", type=str, default="lstm")
     args = parser.parse_args()
+
+    assert args.architecture in ["lstm", "transf"]
 
     if args.inference:
         # cannot inference without checkpoint
