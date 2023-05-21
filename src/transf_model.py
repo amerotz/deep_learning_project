@@ -1,5 +1,33 @@
 import torch
+import math
 import torch.nn as nn
+
+
+# from pytorch docs
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
+        super().__init__()
+        self.dropout = nn.Dropout(p=dropout)
+
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model)
+        )
+        pe = torch.zeros(max_len, 1, d_model)
+        pe[:, 0, 0::2] = torch.sin(position * div_term)
+        pe[:, 0, 1::2] = torch.cos(position * div_term)
+        self.register_buffer("pe", pe)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Arguments:
+            x: Tensor, shape ``[seq_len, batch_size, embedding_dim]``
+        """
+        x = x.swapaxes(0, 1)
+        x = x + self.pe[: x.size(0)]
+        x = self.dropout(x)
+        x = x.swapaxes(0, 1)
+        return x
 
 
 class TransfModel(nn.Module):
@@ -34,6 +62,10 @@ class TransfModel(nn.Module):
             num_layers=num_layers,
         )
 
+        self.positional_encoding = PositionalEncoding(
+            d_model=embedding_size, dropout=dropout, max_len=512
+        )
+
         self.prediction_layer = nn.Linear(hidden_size, vocab_size)
         self.softmax = nn.Softmax(dim=-1)
 
@@ -47,8 +79,10 @@ class TransfModel(nn.Module):
         # (B, L) -> (B, L, E)
         embedding = self.embedding(batch)
 
+        pos_embedding = self.positional_encoding(embedding)
+
         # (B, L, E) -> (B, L, H)
-        transf_out = self.transformer_encoder(embedding)
+        transf_out = self.transformer_encoder(pos_embedding)
 
         # (B, L, H) -> (B * L, H)
         pred_input = transf_out.reshape(B * L, H)
