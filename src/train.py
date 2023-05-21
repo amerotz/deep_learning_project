@@ -68,6 +68,8 @@ def main(args):
         )
     print(model)
 
+    # to keep track of epochs across multiple runs
+    offset = args.epochs_offset + 1
     # load previous checkpoint
     if args.load != None:
         print(f"Loading checkpoint {args.load}")
@@ -150,7 +152,7 @@ def main(args):
 
                 old_validation_loss = validation_loss
 
-            checkpoint_path = f"{args.ckpt_dir}/E{e}.pytorch"
+            checkpoint_path = f"{args.ckpt_dir}/E{e + offset}.pytorch"
             if e % 5 == 0:
                 torch.save(model.state_dict(), checkpoint_path)
                 print("Model saved at %s" % checkpoint_path)
@@ -161,16 +163,17 @@ def main(args):
                 print("Model saved at %s" % checkpoint_path)
                 break
 
-    model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
-    plt.plot(epoch_training_loss, label="training loss")
-    plt.plot(epoch_validation_loss, label="validation loss")
-    plt.yscale("log")
-    plt.legend()
-    plt.xticks(range(0, args.epochs, max(1, args.epochs // 20)))
-    plt.grid()
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.savefig(f"{args.ckpt_dir}/{model_name}.png")
+    if not args.inference:
+        model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
+        plt.plot(epoch_training_loss, label="training loss")
+        plt.plot(epoch_validation_loss, label="validation loss")
+        plt.yscale("log")
+        plt.legend()
+        plt.xticks(range(0, args.epochs, max(1, args.epochs // 20)))
+        plt.grid()
+        plt.xlabel("Epochs")
+        plt.ylabel("Loss")
+        plt.savefig(f"{args.ckpt_dir}/{model_name}.png")
 
     # inference at end of training or because args.inference
     model.eval()
@@ -193,7 +196,7 @@ if __name__ == "__main__":
     parser.add_argument("-es", "--embedding_size", type=int, default=16)
     parser.add_argument("-l", "--layers", type=int, default=2)
     parser.add_argument("-dp", "--dropout", type=float, default=0.2)
-    parser.add_argument("-ah", "--attention_heads", type=int, default=8)
+    parser.add_argument("-ah", "--attention_heads", type=int, default=4)
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.01)
     parser.add_argument("-bs", "--batch_size", type=float, default=100)
     parser.add_argument("-tr", "--train_ratio", type=float, default=0.9)
@@ -206,6 +209,7 @@ if __name__ == "__main__":
     parser.add_argument("-ml", "--max_sequence_length", type=int, default=512)
     parser.add_argument("-ckd", "--ckpt_dir", type=str, default="./ckpts")
     parser.add_argument("-arch", "--architecture", type=str, default="lstm")
+    parser.add_argument("-eo", "--epochs_offset", type=int, default=0)
     args = parser.parse_args()
 
     assert args.architecture in ["lstm", "transf"]
