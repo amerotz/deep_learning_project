@@ -11,8 +11,17 @@ from transf_model import *
 from dataset import *
 
 
+def pprint(s):
+    s = str(s)
+    pprint.log += s + "\n"
+    print(s)
+
+
+pprint.log = ""
+
+
 def main(args):
-    print("Loading data...")
+    pprint("Loading data...")
 
     # load dataset
     if args.create_data:
@@ -36,7 +45,7 @@ def main(args):
 
     if not args.inference:
         # split data
-        print("Creating splits...")
+        pprint("Creating splits...")
         train_data, val_data = tud.random_split(
             dataset, [args.train_ratio, 1 - args.train_ratio]
         )
@@ -45,7 +54,7 @@ def main(args):
         train_loader = tud.DataLoader(train_data, batch_size=B, shuffle=True)
         val_loader = tud.DataLoader(val_data, batch_size=len(val_data), shuffle=True)
 
-    print("Creating model...")
+    pprint("Creating model...")
 
     # model, optimizer, loss
     if args.architecture == "lstm":
@@ -66,19 +75,19 @@ def main(args):
             dropout=args.dropout,
             attention_heads=args.attention_heads,
         )
-    print(model)
+    pprint(model)
 
     # to keep track of epochs across multiple runs
     offset = args.epochs_offset + 1
     # load previous checkpoint
     if args.load != None:
-        print(f"Loading checkpoint {args.load}")
+        pprint(f"Loading checkpoint {args.load}")
         model.load_state_dict(torch.load(args.load))
 
     # check gpu
     device = "cpu"
     if torch.cuda.is_available():
-        print("Using CUDA.")
+        pprint("Using CUDA.")
         model = model.cuda()
         device = "cuda"
 
@@ -97,7 +106,7 @@ def main(args):
 
         os.makedirs(args.ckpt_dir, exist_ok=True)
 
-        print("Training started.")
+        pprint("Training started.")
         for e in range(args.epochs):
             mean_epoch_loss = 0
             batch_num = 0
@@ -126,7 +135,7 @@ def main(args):
             # log
             epoch_training_loss.append(mean_epoch_loss)
             mean_epoch_loss = round(mean_epoch_loss, 6)
-            print(f"TRAIN\tEPOCH:{e}/{args.epochs}\tLOSS:{mean_epoch_loss}")
+            pprint(f"TRAIN\tEPOCH:{e}/{args.epochs}\tLOSS:{mean_epoch_loss}")
 
             # validation
             model.eval()
@@ -142,7 +151,7 @@ def main(args):
                 # log
                 epoch_validation_loss.append(validation_loss)
                 validation_loss = round(validation_loss, 6)
-                print(f"VAL\tEPOCH:{e}/{args.epochs}\tLOSS:{validation_loss}")
+                pprint(f"VAL\tEPOCH:{e}/{args.epochs}\tLOSS:{validation_loss}")
 
                 if validation_loss > old_validation_loss:
                     patience -= 1
@@ -154,16 +163,16 @@ def main(args):
             checkpoint_path = f"{args.ckpt_dir}/E{e + offset}.pytorch"
             if e % 5 == 0:
                 torch.save(model.state_dict(), checkpoint_path)
-                print("Model saved at %s" % checkpoint_path)
+                pprint("Model saved at %s" % checkpoint_path)
 
             if patience == 0:
-                print("Patience reached. Early stopping.")
+                pprint("Patience reached. Early stopping.")
                 torch.save(model.state_dict(), checkpoint_path)
-                print("Model saved at %s" % checkpoint_path)
+                pprint("Model saved at %s" % checkpoint_path)
                 break
 
+    model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
     if not args.inference:
-        model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
         plt.plot(epoch_training_loss, label="training loss")
         plt.plot(epoch_validation_loss, label="validation loss")
         plt.yscale("log")
@@ -176,7 +185,7 @@ def main(args):
 
     # inference at end of training or because args.inference
     model.eval()
-    print("Inferenced sample")
+    pprint("Inferenced sample")
     gen = model.inference(
         dataset.sos_idx,
         dataset.eos_idx,
@@ -185,7 +194,10 @@ def main(args):
         temperature=args.temperature,
     )
     gen = [dataset.i2w[str(i)] for i in gen]
-    print(" ".join(gen))
+    pprint(" ".join(gen))
+
+    with open(f"{args.ckpt_dir}/{model_name}.log", "w") as f:
+        f.write(pprint.log)
 
 
 if __name__ == "__main__":
