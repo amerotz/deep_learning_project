@@ -47,14 +47,8 @@ class LSTMModel(nn.Module):
         # (B, L, E) -> (B, L, H)
         lstm_out, _ = self.lstm_layer(embedding)
 
-        # (B, L, H) -> (B * L, H)
-        pred_input = lstm_out.reshape(B * L, self.multiplier * H)
-
-        # (B * L, H) -> (B * L, V)
-        logits = self.prediction_layer(pred_input)
-
-        # (B * L, V) -> (B, L, V)
-        # logits = logits.reshape(B, L, V)
+        # (B, L, H) -> (B, L, V)
+        logits = self.prediction_layer(lstm_out)
 
         return logits
 
@@ -65,9 +59,9 @@ class LSTMModel(nn.Module):
             generation = [sos_idx]
             t = 0
             while t < max_len:
-                input = torch.LongTensor([generation[-1]]).to(device).unsqueeze(0)
+                input = torch.LongTensor(generation).to(device).unsqueeze(0)
 
-                out = self.forward(input)
+                out = self.forward(input)[:, -1, :]
 
                 tok = self.sample(out, mode=mode)
                 generation.append(tok)
