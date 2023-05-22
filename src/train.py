@@ -109,6 +109,8 @@ def main(args):
         model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
         if args.ckpt_dir == None:
             ckpt_dir = f"./{model_name}"
+        else:
+            ckpt_dir = args.ckpt_dir
         os.makedirs(ckpt_dir, exist_ok=True)
 
         pprint("Training started.")
@@ -180,6 +182,7 @@ def main(args):
                 break
 
     if not args.inference:
+        plt.clf()
         plt.plot(epoch_training_loss, label="training loss")
         plt.plot(epoch_validation_loss, label="validation loss")
         plt.yscale("log")
