@@ -91,7 +91,7 @@ print("total tokens: ", len(filtered_tokens))
 
 print(f"{100*len(filtered_items)/len(items)}% of files kept")
 print(f"max length of piece: {max(lens)}")
-print(len(list(filter(lambda x: x < 400, lens))) / len(items))
+print(len(list(filter(lambda x: x <= 256, lens))) / len(items))
 
 """
 # find the total number of unique tokens

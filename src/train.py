@@ -23,6 +23,8 @@ pprint.log = ""
 def main(args):
     pprint("Loading data...")
 
+    torch.manual_seed(0)
+
     # load dataset
     if args.create_data:
         dataset = MusicDataset(
@@ -104,7 +106,10 @@ def main(args):
         epoch_training_loss = []
         epoch_validation_loss = []
 
-        os.makedirs(args.ckpt_dir, exist_ok=True)
+        model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
+        if args.ckpt_dir == None:
+            ckpt_dir = f"./{model_name}"
+        os.makedirs(ckpt_dir, exist_ok=True)
 
         pprint("Training started.")
         for e in range(args.epochs):
@@ -160,7 +165,7 @@ def main(args):
 
                 old_validation_loss = validation_loss
 
-            checkpoint_path = f"{args.ckpt_dir}/E{e + offset}.pytorch"
+            checkpoint_path = f"{ckpt_dir}/E{e + offset}.pytorch"
             if e % 5 == 0:
                 torch.save(model.state_dict(), checkpoint_path)
                 pprint("Model saved at %s" % checkpoint_path)
@@ -171,17 +176,16 @@ def main(args):
                 pprint("Model saved at %s" % checkpoint_path)
                 break
 
-    model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
     if not args.inference:
         plt.plot(epoch_training_loss, label="training loss")
         plt.plot(epoch_validation_loss, label="validation loss")
         plt.yscale("log")
         plt.legend()
-        plt.xticks(range(0, args.epochs, max(1, args.epochs // 20)))
+        plt.xticks(range(0, args.epochs, max(1, args.epochs // 5)))
         plt.grid()
         plt.xlabel("Epochs")
         plt.ylabel("Loss")
-        plt.savefig(f"{args.ckpt_dir}/{model_name}.png")
+        plt.savefig(f"{ckpt_dir}/{model_name}.png")
 
     # inference at end of training or because args.inference
     model.eval()
@@ -196,8 +200,9 @@ def main(args):
     gen = [dataset.i2w[str(i)] for i in gen]
     pprint(" ".join(gen))
 
-    with open(f"{args.ckpt_dir}/{model_name}.log", "w") as f:
-        f.write(pprint.log)
+    if not args.inference:
+        with open(f"{ckpt_dir}/{model_name}.log", "w") as f:
+            f.write(pprint.log)
 
 
 if __name__ == "__main__":
@@ -209,7 +214,7 @@ if __name__ == "__main__":
     parser.add_argument("-dp", "--dropout", type=float, default=0.2)
     parser.add_argument("-ah", "--attention_heads", type=int, default=2)
     parser.add_argument("-lr", "--learning_rate", type=float, default=0.01)
-    parser.add_argument("-bs", "--batch_size", type=float, default=100)
+    parser.add_argument("-bs", "--batch_size", type=int, default=100)
     parser.add_argument("-tr", "--train_ratio", type=float, default=0.9)
     parser.add_argument("-cd", "--create_data", action="store_true")
     parser.add_argument("-p", "--patience", type=int, default=5)
@@ -218,7 +223,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--mode", type=str, default="greedy")
     parser.add_argument("-t", "--temperature", type=float, default=1)
     parser.add_argument("-ml", "--max_sequence_length", type=int, default=512)
-    parser.add_argument("-ckd", "--ckpt_dir", type=str, default="./ckpts")
+    parser.add_argument("-ckd", "--ckpt_dir", type=str, default=None)
     parser.add_argument("-arch", "--architecture", type=str, default="lstm")
     parser.add_argument("-eo", "--epochs_offset", type=int, default=0)
     args = parser.parse_args()

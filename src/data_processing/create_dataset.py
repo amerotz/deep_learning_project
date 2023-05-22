@@ -36,6 +36,8 @@ ignore = [
     "=G",
 ]
 
+max_length = 256
+
 data = ""
 for path_to_file in tqdm(os.listdir("abc")):
     file_tokens = defaultdict(int)
@@ -44,6 +46,9 @@ for path_to_file in tqdm(os.listdir("abc")):
     # open the file
     with open(f"abc/{path_to_file}", "r") as file:
         tokens = file.read().split(" ")
+
+        if len(tokens) > max_length:
+            continue
 
         # check for tokens to ignore
         for tok in ignore:
