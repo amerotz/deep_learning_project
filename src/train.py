@@ -77,6 +77,9 @@ def main(args):
             dropout=args.dropout,
             attention_heads=args.attention_heads,
         )
+    else:
+        raise ValueError("Invalid architecture, choose lstm or transf.")
+    
     pprint(model)
 
     # to keep track of epochs across multiple runs
