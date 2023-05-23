@@ -47,9 +47,6 @@ for path_to_file in tqdm(os.listdir("abc")):
     with open(f"abc/{path_to_file}", "r") as file:
         tokens = file.read().split(" ")
 
-        if len(tokens) > max_length:
-            continue
-
         # check for tokens to ignore
         for tok in ignore:
             if tok in tokens:
@@ -62,6 +59,9 @@ for path_to_file in tqdm(os.listdir("abc")):
 
         # split file_tokens by space and remove empty strings
         tokens = list(filter(None, tokens))
+
+        if len(tokens) > max_length:
+            continue
 
         data += " ".join(tokens) + "\n"
 

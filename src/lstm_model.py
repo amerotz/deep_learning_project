@@ -63,7 +63,7 @@ class LSTMModel(nn.Module):
 
                 out = self.forward(input)[:, -1, :]
 
-                tok = self.sample(out, mode=mode)
+                tok = self.sample(out, mode=mode, T=temperature)
                 generation.append(tok)
 
                 if tok == eos_idx:

@@ -101,12 +101,16 @@ def main(args):
     patience = args.patience
     old_validation_loss = float("Inf")
 
+    model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
+
+    if args.architecture == "transf":
+        model_name += f"_ah={args.attention_heads}"
+
     # just training
     if not args.inference:
         epoch_training_loss = []
         epoch_validation_loss = []
 
-        model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
         if args.ckpt_dir == None:
             ckpt_dir = f"./{model_name}"
         else:
@@ -194,23 +198,30 @@ def main(args):
         plt.savefig(f"{ckpt_dir}/{model_name}.png")
 
     # inference at end of training or because args.inference
-    model.eval()
-    pprint("Inferenced sample")
-    gen = model.inference(
-        dataset.sos_idx,
-        dataset.eos_idx,
-        device=device,
-        mode=args.mode,
-        temperature=args.temperature,
-    )
-    gen = [dataset.i2w[str(i)] for i in gen]
-    pprint(" ".join(gen))
+    if args.inference:
+        model.eval()
+        print("Inferenced samples")
+        generation = ""
+        for i in range(args.sample_num):
+            gen = model.inference(
+                dataset.sos_idx,
+                dataset.eos_idx,
+                device=device,
+                mode=args.mode,
+                temperature=args.temperature,
+            )
+            gen = [dataset.i2w[str(i)] for i in gen]
+            s = "".join(gen[1:-1])
+            headers = f"X:{i}\nL:1/8\nQ:120\nM:4/4\nK:C\n"
+            generation += headers + s + "\n"
+            with open(f"generated_{model_name}.abc", "w") as f:
+                f.write(generation)
 
     if not args.inference:
         with open(f"{ckpt_dir}/{model_name}.log", "w") as f:
             f.write(pprint.log)
 
-    return min(epoch_validation_loss)
+        return min(epoch_validation_loss)
 
 
 if __name__ == "__main__":
@@ -234,6 +245,7 @@ if __name__ == "__main__":
     parser.add_argument("-ckd", "--ckpt_dir", type=str, default=None)
     parser.add_argument("-arch", "--architecture", type=str, default="lstm")
     parser.add_argument("-eo", "--epochs_offset", type=int, default=0)
+    parser.add_argument("-n", "--sample_num", type=int, default=1)
     args = parser.parse_args()
 
     assert args.architecture in ["lstm", "transf"]
