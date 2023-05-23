@@ -77,6 +77,9 @@ def main(args):
             dropout=args.dropout,
             attention_heads=args.attention_heads,
         )
+    else:
+        raise ValueError("Invalid architecture, choose lstm or transf.")
+    
     pprint(model)
 
     # to keep track of epochs across multiple runs
@@ -92,6 +95,11 @@ def main(args):
         pprint("Using CUDA.")
         model = model.cuda()
         device = "cuda"
+
+    elif torch.backends.mps.is_available():
+        pprint("Using MPS (Apple Silicon)")
+        device = torch.device('mps')
+        model.to(device)
 
     # optimizer and loss
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
