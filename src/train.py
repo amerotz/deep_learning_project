@@ -94,7 +94,7 @@ def main(args):
         device = "cuda"
 
     # optimizer and loss
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     loss_fn = nn.CrossEntropyLoss(ignore_index=dataset.pad_idx)
 
     # early stopping
@@ -109,6 +109,8 @@ def main(args):
         model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
         if args.ckpt_dir == None:
             ckpt_dir = f"./{model_name}"
+        else:
+            ckpt_dir = args.ckpt_dir
         os.makedirs(ckpt_dir, exist_ok=True)
 
         pprint("Training started.")
@@ -122,10 +124,10 @@ def main(args):
                 target = target.to(device)
 
                 # model prediction
-                logits = model(input.to(device))
+                logits = model(input.to(device)).swapaxes(1, 2)
 
                 # compute loss
-                loss = loss_fn(input=logits, target=target.flatten())
+                loss = loss_fn(input=logits, target=target)
                 mean_epoch_loss += loss
 
                 # propagate and optimize
@@ -149,9 +151,9 @@ def main(args):
                 x_val, y_val = list(iter(val_loader))[0]
                 y_val = y_val.to(device)
                 # forward
-                val_logits = model(x_val.to(device))
+                val_logits = model(x_val.to(device)).swapaxes(1, 2)
                 # loss
-                validation_loss = loss_fn(input=val_logits, target=y_val.flatten())
+                validation_loss = loss_fn(input=val_logits, target=y_val)
                 validation_loss = float(validation_loss)
                 # log
                 epoch_validation_loss.append(validation_loss)
@@ -165,18 +167,22 @@ def main(args):
 
                 old_validation_loss = validation_loss
 
-            checkpoint_path = f"{ckpt_dir}/E{e + offset}.pytorch"
+                if validation_loss <= min(epoch_validation_loss):
+                    checkpoint_path = f"{ckpt_dir}/best.pytorch"
+                    torch.save(model.state_dict(), checkpoint_path)
+                    pprint("Lowest loss model saved at %s" % checkpoint_path)
+
+            checkpoint_path = f"{ckpt_dir}/checkpoint.pytorch"
             if e % 5 == 0:
                 torch.save(model.state_dict(), checkpoint_path)
                 pprint("Model saved at %s" % checkpoint_path)
 
             if patience == 0:
                 pprint("Patience reached. Early stopping.")
-                torch.save(model.state_dict(), checkpoint_path)
-                pprint("Model saved at %s" % checkpoint_path)
                 break
 
     if not args.inference:
+        plt.clf()
         plt.plot(epoch_training_loss, label="training loss")
         plt.plot(epoch_validation_loss, label="validation loss")
         plt.yscale("log")
@@ -203,6 +209,8 @@ def main(args):
     if not args.inference:
         with open(f"{ckpt_dir}/{model_name}.log", "w") as f:
             f.write(pprint.log)
+
+    return min(epoch_validation_loss)
 
 
 if __name__ == "__main__":

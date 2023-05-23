@@ -50,7 +50,7 @@ class TransfModel(nn.Module):
 
         self.embedding = nn.Embedding(vocab_size, embedding_size)
         self.encoder_layer = nn.TransformerEncoderLayer(
-            d_model=embedding_size,
+            d_model=hidden_size,
             nhead=attention_heads,
             dim_feedforward=hidden_size,
             dropout=dropout,
@@ -84,14 +84,8 @@ class TransfModel(nn.Module):
         # (B, L, E) -> (B, L, H)
         transf_out = self.transformer_encoder(pos_embedding)
 
-        # (B, L, H) -> (B * L, H)
-        pred_input = transf_out.reshape(B * L, H)
-
-        # (B * L, H) -> (B * L, V)
-        logits = self.prediction_layer(pred_input)
-
-        # (B * L, V) -> (B, L, V)
-        # logits = logits.reshape(B, L, V)
+        # (B, L, H) -> (B, L, V)
+        logits = self.prediction_layer(transf_out)
 
         return logits
 
@@ -102,9 +96,9 @@ class TransfModel(nn.Module):
             generation = [sos_idx]
             t = 0
             while t < max_len:
-                input = torch.LongTensor([generation[-1]]).to(device).unsqueeze(0)
+                input = torch.LongTensor(generation).to(device).unsqueeze(0)
 
-                out = self.forward(input)
+                out = self.forward(input)[:, -1, :]
 
                 tok = self.sample(out, mode=mode)
                 generation.append(tok)
