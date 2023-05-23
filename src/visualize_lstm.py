@@ -56,13 +56,13 @@ def main(args):
         dataset, [args.train_ratio, 1 - args.train_ratio]
     )
 
+    # check gpu
+    device = "cpu"
+
     # load previous checkpoint
     if args.load != None:
         print(f"Loading checkpoint {args.load}")
-        model.load_state_dict(torch.load(args.load))
-
-    # check gpu
-    device = "cpu"
+        model.load_state_dict(torch.load(args.load, map_location=torch.device(device)))
 
     model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
 
@@ -89,7 +89,7 @@ def main(args):
 
     plt.xlabel(labels)
     plt.ylabel(labels)
-    plt.show()
+    plt.savefig(f"prediction_layer.png")
 
     plt.clf()
     """
@@ -103,9 +103,7 @@ def main(args):
         temperature=args.temperature,
     )
     sample_x = torch.IntTensor(gen)
-    """
-    sample_x, sample_y = val_data[69]
-    """
+    # sample_x, sample_y = val_data[69]
     print(sample_x)
     logits = model(sample_x.unsqueeze(0))
     probs = model.softmax(logits).squeeze(0)
@@ -114,7 +112,12 @@ def main(args):
     probs /= np.max(probs)
 
     plt.imshow(probs)
-    plt.show()
+    plt.savefig("generated_probs.png")
+    gen = [dataset.i2w[str(i)] for i in gen]
+    s = "".join(gen[1:-1])
+    headers = f"X:0\nL:1/8\nQ:120\nM:4/4\nK:C\n"
+    generation = headers + s + "\n"
+    print(generation)
 
     """
     # inference at end of training or because args.inference
