@@ -76,13 +76,17 @@ class TransfModel(nn.Module):
         H = self.hidden_size
         V = self.vocab_size
 
+        mask = nn.Transformer.generate_square_subsequent_mask(
+            L, device=batch.device
+        ).bool()
+
         # (B, L) -> (B, L, E)
         embedding = self.embedding(batch)
 
         pos_embedding = self.positional_encoding(embedding)
 
         # (B, L, E) -> (B, L, H)
-        transf_out = self.transformer_encoder(pos_embedding)
+        transf_out = self.transformer_encoder(pos_embedding, mask=mask)
 
         # (B, L, H) -> (B, L, V)
         logits = self.prediction_layer(transf_out)
@@ -100,7 +104,7 @@ class TransfModel(nn.Module):
 
                 out = self.forward(input)[:, -1, :]
 
-                tok = self.sample(out, mode=mode)
+                tok = self.sample(out, mode=mode, T=temperature)
                 generation.append(tok)
 
                 if tok == eos_idx:
