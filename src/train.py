@@ -96,6 +96,11 @@ def main(args):
         model = model.cuda()
         device = "cuda"
 
+    elif torch.backends.mps.is_available():
+        pprint("Using MPS (Apple Silicon)")
+        device = torch.device('mps')
+        model.to(device)
+
     # optimizer and loss
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     loss_fn = nn.CrossEntropyLoss(ignore_index=dataset.pad_idx)
