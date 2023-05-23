@@ -1,4 +1,5 @@
 import torch
+import time
 import torch.nn as nn
 import torch.utils.data as tud
 import argparse
@@ -47,6 +48,7 @@ def main(args):
         dropout=args.dropout,
         bidirectional=False,
     )
+    model.eval()
     print(model)
 
     print("Creating splits...")
@@ -64,6 +66,7 @@ def main(args):
 
     model_name = f"{args.architecture}_l={args.layers}_es={args.embedding_size}_hs={args.hidden_size}_d={args.dropout}_e={args.epochs}_lr={args.learning_rate}_bs={args.batch_size}"
 
+    """
     # self similarity
     # mat = model.embedding.weight
     mat = model.prediction_layer.weight
@@ -84,10 +87,33 @@ def main(args):
     plt.imshow(out)
     labels = [dataset.i2w[str(i)] for i in range(out.shape[0])]
 
-    """
     plt.xlabel(labels)
     plt.ylabel(labels)
+    plt.show()
+
+    plt.clf()
     """
+
+    torch.manual_seed(time.time())
+    gen = model.inference(
+        dataset.sos_idx,
+        dataset.eos_idx,
+        device=device,
+        mode=args.mode,
+        temperature=args.temperature,
+    )
+    sample_x = torch.IntTensor(gen)
+    """
+    sample_x, sample_y = val_data[69]
+    """
+    print(sample_x)
+    logits = model(sample_x.unsqueeze(0))
+    probs = model.softmax(logits).squeeze(0)
+    probs = probs.detach().numpy().T
+
+    probs /= np.max(probs)
+
+    plt.imshow(probs)
     plt.show()
 
     """
