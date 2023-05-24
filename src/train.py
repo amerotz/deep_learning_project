@@ -79,7 +79,7 @@ def main(args):
         )
     else:
         raise ValueError("Invalid architecture, choose lstm or transf.")
-    
+
     pprint(model)
 
     # to keep track of epochs across multiple runs
@@ -98,7 +98,7 @@ def main(args):
 
     elif torch.backends.mps.is_available():
         pprint("Using MPS (Apple Silicon)")
-        device = torch.device('mps')
+        device = torch.device("mps")
         model.to(device)
 
     # optimizer and loss
@@ -156,17 +156,20 @@ def main(args):
             mean_epoch_loss = round(mean_epoch_loss, 6)
             pprint(f"TRAIN\tEPOCH:{e}/{args.epochs}\tLOSS:{mean_epoch_loss}")
 
-            # validation
             model.eval()
+            # loss
             with torch.no_grad():
                 # get val data
                 x_val, y_val = list(iter(val_loader))[0]
                 y_val = y_val.to(device)
+
                 # forward
                 val_logits = model(x_val.to(device)).swapaxes(1, 2)
+
                 # loss
                 validation_loss = loss_fn(input=val_logits, target=y_val)
                 validation_loss = float(validation_loss)
+
                 # log
                 epoch_validation_loss.append(validation_loss)
                 validation_loss = round(validation_loss, 6)
@@ -249,7 +252,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--inference", action="store_true")
     parser.add_argument("-m", "--mode", type=str, default="greedy")
     parser.add_argument("-t", "--temperature", type=float, default=1)
-    parser.add_argument("-ml", "--max_sequence_length", type=int, default=512)
+    parser.add_argument("-ml", "--max_sequence_length", type=int, default=256)
     parser.add_argument("-ckd", "--ckpt_dir", type=str, default=None)
     parser.add_argument("-arch", "--architecture", type=str, default="lstm")
     parser.add_argument("-eo", "--epochs_offset", type=int, default=0)

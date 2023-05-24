@@ -1,11 +1,12 @@
 import torch
+import torch.utils.data as tud
 import json
 import numpy as np
 from tqdm import tqdm
 from collections import defaultdict
 
 
-class MusicDataset(torch.utils.data.Dataset):
+class MusicDataset(tud.Dataset):
     def __init__(
         self,
         data_file: str,
@@ -159,15 +160,34 @@ class MusicDataset(torch.utils.data.Dataset):
         )
 
 
+torch.manual_seed(0)
 """
 dataset = MusicDataset("data/dataset.txt", 128)
+"""
 dataset = MusicDataset(
     data_file="data/dataset.json",
     vocab_file="data/vocab.json",
     max_sequence_length=128,
     create_data=False,
 )
-print(dataset, "\n", len(dataset))
-print(dataset.w2i, "\n", dataset.i2w)
-print(dataset[0])
-"""
+train_data, val_data = tud.random_split(dataset, [0.9, 1 - 0.9])
+
+data = ""
+for seq in train_data:
+    x = seq[0]
+    x = x[x != 0].detach().numpy()
+    s = " ".join([dataset.i2w[str(i)] for i in x[1:]])
+    data += s + " \n "
+
+with open("data/training_data.txt", "w") as f:
+    f.write(data)
+
+data = ""
+for seq in val_data:
+    x = seq[0]
+    x = x[x != 0].detach().numpy()
+    s = " ".join([dataset.i2w[str(i)] for i in x[1:]])
+    data += s + " \n "
+
+with open("data/validation_data.txt", "w") as f:
+    f.write(data)

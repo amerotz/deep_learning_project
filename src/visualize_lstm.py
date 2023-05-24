@@ -103,7 +103,7 @@ def main(args):
         temperature=args.temperature,
     )
     sample_x = torch.IntTensor(gen)
-    # sample_x, sample_y = val_data[69]
+    sample_x, sample_y = val_data[69]
     print(sample_x)
     logits = model(sample_x.unsqueeze(0))
     probs = model.softmax(logits).squeeze(0)
@@ -112,14 +112,15 @@ def main(args):
     probs /= np.max(probs)
 
     plt.imshow(probs)
-    plt.savefig("generated_probs.png")
+    plt.savefig("sample_probs.png")
+
+    """
     gen = [dataset.i2w[str(i)] for i in gen]
     s = "".join(gen[1:-1])
     headers = f"X:0\nL:1/8\nQ:120\nM:4/4\nK:C\n"
     generation = headers + s + "\n"
     print(generation)
 
-    """
     # inference at end of training or because args.inference
     if args.inference:
         model.eval()
