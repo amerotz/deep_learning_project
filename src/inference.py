@@ -12,10 +12,15 @@ import tempfile
 from lstm_model import *
 from transf_model import *
 
-def main(args, model):
-    
+
+def main(args):
     # set cpu as device
     device = "cpu"
+
+    # load the model from the runid
+    model_uri = "runs:/" + args.run_id + "/models"
+    # TODO ska inte behöva flytta den till cpu här egentligen
+    model = mlflow.pytorch.load_model(model_uri).to("cpu")
 
     # load the vocabulary
     with open(args.vocab_file, "r") as f:
@@ -25,39 +30,42 @@ def main(args, model):
         sos_idx = w2i["<sos>"]
         eos_idx = w2i["<eos>"]
 
-    #vocab_size = len(w2i)
+    # vocab_size = len(w2i)
 
-    # inference - generating n samples
-    generation = ""
-    for i in range(args.sample_num):
-        gen = model.inference(
-            sos_idx,
-            eos_idx,
-            device=device,
-            mode=args.mode,
-            temperature=args.temperature,
+    import concurrent.futures
+    from sample_generator import GenerateSample
+
+    # Your main function here
+    generate_sample = GenerateSample(
+        model, i2w, sos_idx, eos_idx, device, args.mode, args.temperature
+    )
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        file_names_and_tunes = list(
+            tqdm(
+                executor.map(generate_sample, range(args.sample_num)),
+                total=args.sample_num,
+                ncols=100
+            )
         )
-        gen = [i2w[str(i)] for i in gen]
-        s = "".join(gen[1:-1])
-        headers = f"X:{i}\nL:1/8\nQ:120\nM:4/4\nK:C\n"
-        generation += headers + s + f"\n{args.delimeter}\n"
 
-        with tempfile.NamedTemporaryFile(prefix="samples_", suffix=".txt") as temp:
-            # TODO this generates a lot of empty files, why??
-            
-            # Write the generation string to the file
-            temp.write(generation.encode())
-            # Remember the file name
-            temp_name = temp.name
-            # Log the file as an artifact of the MLflow run
-            mlflow.log_artifact(temp_name, "generated_samples")
+    for file_name, tune in file_names_and_tunes:
+        # create a temporary file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".abc") as f:
+            f.write(tune)
+            f.flush()
+            # log the file as an artifact
+            mlflow.log_artifact(f.name, f"inference")
 
-        # TODO further preprocessing of the generated samples into a format for analyzing
-        # convert abc to midi and log the number of errors
-        # convert the abc to correct format (as the dataset)
+    # generation = "".join(generations)
+    # artifact_uri = "runs:/" + args.run_id + "/artifacts"
+    # mlflow.log_text(generation, f"inference/{args.sample_num}_generated_samples.txt")
 
-        
-    
+    # Log the file as an artifact of the MLflow run
+
+    # TODO further preprocessing of the generated samples into a format for analyzing
+    # convert abc to midi and log the number of errors
+    # convert the abc to correct format (as the dataset)
+
 
 if __name__ == "__main__":
     # TODO fix bug where the model is just genereating the same thing over and over again
@@ -84,18 +92,13 @@ if __name__ == "__main__":
     assert args.vocab_file != None
     assert args.mode in ["greedy", "topp", "topk"]
 
-    # load the model from the runid
-    model_uri = "runs:/" + args.run_id + "/models"
-    # TODO ska inte behöva flytta den till cpu här egentligen
-    loaded_model = mlflow.pytorch.load_model(model_uri).to("cpu")
-
     # set the correct experiment
     mlflow.set_experiment(args.experiment_name)
-    
+
     # set the correct run
     mlflow.start_run(run_id=args.run_id)
-    
-    main(args, loaded_model)
+
+    main(args)
 
     # end experiment
     mlflow.end_run()
@@ -114,4 +117,3 @@ python src/inference.py --experiment_name "My Experiment" \
 run id glamouras goat
 e87974ba799c4864b8da325bdbebcd2a
 """
-    
